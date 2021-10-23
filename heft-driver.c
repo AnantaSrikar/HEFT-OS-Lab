@@ -30,8 +30,6 @@ int main(int argc, char **argv)
 	int num_tasks = input_arr[0];
 	int num_procs = input_arr[1];
 
-	printf("OwO: %d\nargc = %d\n", ((num_tasks * num_procs) + (num_tasks * num_tasks) + 3), argc);
-
 	if(((num_tasks * num_procs) + (num_tasks * num_tasks) + 3) != argc)
 	{
 		printf("Incorrect number of arguments entered. Check and try again!\n");
@@ -53,6 +51,26 @@ int main(int argc, char **argv)
 			a_DAG[i][j] = input_arr[2 + (num_procs * num_tasks) + (i * num_tasks) + j];
 
 	// End of command line args setup
+
+	// Printing to test assignment
+	
+	for(int i = 0; i < num_procs; i++)
+	{
+		for(int j = 0; j < num_tasks; j++)
+			printf("%d ", exec_times[i][j]);
+
+		printf("\n");
+	}
+
+	printf("\n\n");
+
+	for(int i = 0; i < num_tasks; i++)
+	{
+		for(int j = 0; j < num_tasks; j++)
+			printf("%d ", a_DAG[i][j]);
+
+		printf("\n");
+	}
 
 	return 0;
 }
