@@ -64,7 +64,7 @@ void initialize(char* input) {
     }
 
     // to store est and eft of all tasks for every processor
-    et* all_et = (et*)malloc(sizeof(et)*num_tasks); 
+    all_et = (et*)malloc(sizeof(et)*num_tasks); 
     for(i = 0; i <num_tasks; ++i) {
         all_et[i].task = -1;
         all_et[i].ests = (double*)malloc(sizeof(double)*num_procs);
@@ -94,19 +94,58 @@ void display_output() {
     printf("\n\n");
 
     printf("EST and EFT on different processors\n");
-    // NEED TO FIGURE THIS OUT
+    for(int i = 0; i < num_tasks; i++)
+    {
+        printf("Task: %d\n", i + 1);
+
+        int x = sorted_tasks[i];
+        for(int j = 0; j < num_procs; j++)
+        {
+            printf("processor %d||est: %lf eft: %lf ||\n", j + 1, all_et[x].ests[j], all_et[x].efts[j]);
+            // printf("processor %d||est: eft:  ||\n", j);
+        }
+        
+        printf("\n");
+    }
     
     printf("Final Schedule:\n");
+
+    final_vals *fv = (final_vals*)malloc(sizeof(final_vals)*num_tasks);
+
+    int cnt = 0;
+
+
     for(i = 0; i < num_procs; ++i) {
         TaskProcessor* tasks = processorSchedule[i]->tasks;
         int j;
         for(j = 0; j < processorSchedule[i]->size; ++j) {
-            printf("Task %d is executed on processor %d from time %g to %g\n",
-                tasks[j].process+1, 
-                i+1,
-                tasks[j].AST, 
-                tasks[j].AFT);
+            int index = tasks[j].process;
+            fv[index].proc = i;
+            fv[index].st = tasks[j].AST;
+            fv[index].et = tasks[j].AFT;
+            // printf("Task %d is executed on processor %d from time %g to %g\n",
+            //     tasks[j].process+1, 
+            //     i+1,
+            //     tasks[j].AST, 
+            //     tasks[j].AFT);
         }
+    }
+
+    for(int i = 0; i < num_tasks; i++)
+    {
+        // for(int j = 0; j < num_tasks; j++)
+        // {
+        //     if(fv[j].task == i)
+        //     {
+                printf("Task %d is executed on processor %d from time %g to %g\n",
+                i + 1, 
+                fv[i].proc + 1,
+                fv[i].st, 
+                fv[i].et);
+
+        //         break;
+        //     }
+        // }
     }
     
     double makespan = DBL_MIN;
@@ -144,7 +183,7 @@ void free_space() {
 }
 
 int main(int argc, char** argv) {
-    if(argc <= 1 || argc > 2) {
+    if(argc != 2) {
         puts("Please provide just one file in the specified format.");
         return -1;
     }

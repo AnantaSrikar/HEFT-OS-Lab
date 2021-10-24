@@ -18,11 +18,17 @@ typedef struct et{
     int task; //index
     double* ests;
     double* efts;
-    // double* ests = (double*)malloc(sizeof(double)*num_procs);
-    // double* efts = (double*)malloc(sizeof(double)*num_procs);
 }et;
 
 et* all_et; // to store est and eft for each task for every processor
+
+typedef struct final_vals
+{
+    int task;
+    int proc;
+    double st;
+    double et;
+} final_vals;
 
 // A function to compute the average computation cost across all the 
 // processors for the given task
@@ -179,23 +185,28 @@ void compute_est(int task, int processor, double* EST) {
 
 // HEFT scheduler function
 void heft() {
-    int i;
-    for(i = 0; i < num_tasks; ++i) {
+    
+    // all_et = (et*)malloc(sizeof(et)*num_tasks);
+
+    
+    for(int i = 0; i < num_tasks; ++i) {
         int task = sorted_tasks[i];
 
-       // all_et[i].task = task;
-        // all_et[i].ests = (double*)malloc(sizeof(double)*num_procs);
-        // all_et[i].efts = (double*)malloc(sizeof(double)*num_procs);
+        printf("Task: %d\n", task);
+
+        all_et[i].task = task;
+
 
 
         //printf("Schdeuling %d\n", task+1);
         if(check_entry_task(task)) {
             double min = DBL_MAX;
             int processor;
-            int j;
-            for(j = 0; j < num_procs; ++j) {
-                // all_et[i].ests[j] = 0;
-                // all_et[i].efts[j] = comp_cost[task][j];
+
+            
+            for(int j = 0; j < num_procs; ++j) {
+                all_et[i].ests[j] = 0;
+                all_et[i].efts[j] = comp_cost[task][j];
 
                 if(comp_cost[task][j] < min) {
                     min = comp_cost[task][j];
@@ -209,7 +220,7 @@ void heft() {
             processorSchedule[processor]->size++;
             afts[task] = min;
             proc[task] = processor;
-            //printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, 0.0, min);
+            printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, 0.0, min);
         } else {
             double minEFT = DBL_MAX;
             double selectedEST = -1;
@@ -219,8 +230,8 @@ void heft() {
                 double EST;
                 compute_est(task, j, &EST);
 
-                // all_et[i].ests[j] = EST;
-                // all_et[i].efts[j] = EST + comp_cost[task][j];
+                all_et[i].ests[j] = EST;
+                all_et[i].efts[j] = EST + comp_cost[task][j];
 
                 if(EST + comp_cost[task][j] < minEFT) {
                     minEFT = EST + comp_cost[task][j];
@@ -237,10 +248,7 @@ void heft() {
             processorSchedule[processor]->size++;
             afts[task] = minEFT;
             proc[task] = processor;
-            //printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, selectedEST, minEFT);
+            printf("Scheduled on %d with AST %g and AFT %g\n", processor+1, selectedEST, minEFT);
         }
     }
 }
-
-
-
