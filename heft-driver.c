@@ -1,76 +1,152 @@
-/*
-	Driver code to get HEFT started.
-*/
+#include <stdio.h>
+#include <stdlib.h>
+#include "heft.c"
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<ctype.h>
+void initialize(char* input) {
+    FILE *fp;
+    fp = fopen(input, "r+");
+    fscanf(fp, "%d\n%d", &num_tasks, &num_procs);
+    int i, j;
 
-int main(int argc, char **argv)
-{
-	// Command line args
+    // A 2D array that stores the computation costs of every task on each processor
+    comp_cost = (double**)malloc(sizeof(double*)*num_tasks);
+    for(i = 0; i < num_tasks; ++i) {
+        comp_cost[i] = (double*)malloc(sizeof(double)*num_procs);
+    }
+     // getting the input fot the computation costs from the input file
+    for(i = 0; i < num_procs; ++i) {
+        for(j = 0; j < num_tasks; ++j) {
+            fscanf(fp, "%lf", &comp_cost[j][i]);
+        }
+    }
 
-	int input_arr[argc - 1];
+    // A 2D array to store the communication costs of the switching from one task to another
+    // This only applies if the processor is changed between the scheduling of the two tasks
+    dag = (double**)malloc(sizeof(double*)*num_tasks);
+    for(i = 0; i < num_tasks; ++i) {
+        dag[i] = (double*)malloc(sizeof(double)*num_tasks);
+    }
+    // getting the input fot the communication costs from the input file
+    for(i = 0; i < num_tasks; ++i) {
+        for(j = 0; j < num_tasks; ++j) {
+            fscanf(fp, "%lf", &dag[i][j]);
+        }
+    }
 
-	for(int i = 1; i < argc; i++)
-	{
-		for(int j = 0; j < strlen(argv[i]); j++)
-			if(!isdigit(argv[i][j]))
-			{
-				printf("Please enter only numbers!\n");
-				return -1;
-			}
+    // A data structure to store the computed upper ranks of each task (represented by the index)
+    u_rank = (double*)malloc(sizeof(double)*num_tasks);
+    for(i = 0; i < num_tasks; ++i) {
+        u_rank[i] = -1;
+    }
 
-		input_arr[i - 1] = atoi(argv[i]);
-	}
+    // An array that stores the sorted tasks in decreasing order as per the upper ranks
+    // this is equivalent to a topological sort of a DAG
+    sorted_tasks = (int*)malloc(sizeof(int)*num_tasks);
 
-	// First get number of tasks and processors to check if the number of args is right
+    // Initializing the process schduler data structure used to store the scheduling information
+    processorSchedule = (ProcessorSchedule**)malloc(sizeof(ProcessorSchedule*)*num_procs);
+    for(i = 0; i < num_procs; ++i) {
+        processorSchedule[i] = (ProcessorSchedule*)malloc(sizeof(ProcessorSchedule)*num_procs);
+        processorSchedule[i]->size = 0;
+        processorSchedule[i]->tasks = NULL;
+    }
 
-	int num_tasks = input_arr[0];
-	int num_procs = input_arr[1];
+    // initializing the AFT array
+    afts = (double*)malloc(sizeof(double)*num_tasks);
+    for(i = 0; i < num_tasks; ++i) {
+        afts[i] = -1;
+    }
 
-	if(((num_tasks * num_procs) + (num_tasks * num_tasks) + 3) != argc)
-	{
-		printf("Incorrect number of arguments entered. Check and try again!\n");
-		return -1;
-	}
+    // Initializing the processor array
+    proc = (int*)malloc(sizeof(int)*num_tasks);
+    for(i = 0; i <num_tasks; ++i) {
+        proc[i] = -1;
+    }
 
-	int exec_times[num_procs][num_tasks];
+    // to store est and eft of all tasks for every processor
+    et* all_et = malloc(sizeof(et)*num_tasks); 
+    // for(i = 0; i <num_tasks; ++i) {
+    //     all_et[i].task = -1;
+    //     all_et[i]->double = -1;
+    // }
+}
 
-	int a_DAG[num_tasks][num_tasks];
+void display_output() {
+    int i;
+    printf("No. of tasks: %d\n", num_tasks);
+    printf("No. of processors: %d\n", num_procs);
+    printf("\n");
+    printf("The upward rank values:\n");
+    for(i = 0; i < num_tasks; ++i) {
+        printf("Task %d: %.6lf\n", i+1, u_rank[i]);
+    }
+    printf("\n");
+    
+    printf("The order of tasks to be scheduled: \n");
+    for(i = 0; i < num_tasks; ++i) {
+        printf("%d ", sorted_tasks[i] + 1);
+    }
+    printf("\n\n");
 
-	// Setting up exec_times
-	for(int i = 0; i < num_procs; i++)
-		for(int j = 0; j < num_tasks; j++)
-			exec_times[i][j] = input_arr[2 + (i * num_tasks) + j];
+    printf("EST and EFT on different processors\n");
+    // NEED TO FIGURE THIS OUT
+    
+    printf("Final Schedule:\n");
+    for(i = 0; i < num_procs; ++i) {
+        TaskProcessor* tasks = processorSchedule[i]->tasks;
+        int j;
+        for(j = 0; j < processorSchedule[i]->size; ++j) {
+            printf("Task %d is executed on processor %d from time %g to %g\n",
+                tasks[j].process+1, 
+                i+1,
+                tasks[j].AST, 
+                tasks[j].AFT);
+        }
+    }
+    
+    double makespan = DBL_MIN;
+    for(i = 0; i < num_tasks; ++i) {
+        if(makespan < afts[i]) {
+            makespan = afts[i];
+        }
+    }
+    printf("\nHence, the makespan length from the schedule: %g\n", makespan);
+}
 
-	// Setting up a_DAG
-	for(int i = 0; i < num_tasks; i++)
-		for(int j = 0; j < num_tasks; j++)
-			a_DAG[i][j] = input_arr[2 + (num_procs * num_tasks) + (i * num_tasks) + j];
+void free_space() {
+    int i;
 
-	// End of command line args setup
+    for(i = 0; i < num_tasks; ++i) {
+        free(comp_cost[i]);
+    }
 
-	// Printing to test assignment
-	
-	for(int i = 0; i < num_procs; i++)
-	{
-		for(int j = 0; j < num_tasks; j++)
-			printf("%d ", exec_times[i][j]);
+    for(i = 0; i < num_tasks; ++i) {
+        free(dag[i]);
+    }
 
-		printf("\n");
-	}
+    for(i = 0; i < num_procs; ++i) {
+        free(processorSchedule[i]->tasks);
+        free(processorSchedule[i]);
+    }
 
-	printf("\n\n");
+    free(comp_cost);
+    free(dag);
+    free(u_rank);
+    free(processorSchedule);
+    free(afts);
+    free(proc);
+    free(sorted_tasks);
+}
 
-	for(int i = 0; i < num_tasks; i++)
-	{
-		for(int j = 0; j < num_tasks; j++)
-			printf("%d ", a_DAG[i][j]);
-
-		printf("\n");
-	}
-
-	return 0;
+int main(int argc, char** argv) {
+    if(argc <= 1 || argc > 2) {
+        puts("Please provide just one file in the specified format.");
+        return -1;
+    }
+    initialize(argv[1]);
+    find_ranks();
+    heft();
+    display_output();
+    free_space();
+    return 0;
 }
