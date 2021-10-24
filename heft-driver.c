@@ -64,11 +64,16 @@ void initialize(char* input) {
     }
 
     // to store est and eft of all tasks for every processor
-    et* all_et = malloc(sizeof(et)*num_tasks); 
-    // for(i = 0; i <num_tasks; ++i) {
-    //     all_et[i].task = -1;
-    //     all_et[i]->double = -1;
-    // }
+    et* all_et = (et*)malloc(sizeof(et)*num_tasks); 
+    for(i = 0; i <num_tasks; ++i) {
+        all_et[i].task = -1;
+        all_et[i].ests = (double*)malloc(sizeof(double)*num_procs);
+        all_et[i].efts = (double*)malloc(sizeof(double)*num_procs);
+        for (int j = 0; j<num_procs; ++j) {
+            all_et[i].ests[j] = -1;
+            all_et[i].efts[j] = -1;
+        }
+    }
 }
 
 void display_output() {

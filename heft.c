@@ -22,7 +22,7 @@ typedef struct et{
     // double* efts = (double*)malloc(sizeof(double)*num_procs);
 }et;
 
-et* all_et;
+et* all_et; // to store est and eft for each task for every processor
 
 // A function to compute the average computation cost across all the 
 // processors for the given task
@@ -183,9 +183,10 @@ void heft() {
     for(i = 0; i < num_tasks; ++i) {
         int task = sorted_tasks[i];
 
-        x.task = task;
-        x.ests = (double*)malloc(sizeof(double)*num_procs);
-        x.efts = (double*)malloc(sizeof(double)*num_procs);
+       // all_et[i].task = task;
+        // all_et[i].ests = (double*)malloc(sizeof(double)*num_procs);
+        // all_et[i].efts = (double*)malloc(sizeof(double)*num_procs);
+
 
         //printf("Schdeuling %d\n", task+1);
         if(check_entry_task(task)) {
@@ -193,8 +194,8 @@ void heft() {
             int processor;
             int j;
             for(j = 0; j < num_procs; ++j) {
-                x.ests[j] = 0;
-                x.efts[j] = comp_cost[task][j];
+                // all_et[i].ests[j] = 0;
+                // all_et[i].efts[j] = comp_cost[task][j];
 
                 if(comp_cost[task][j] < min) {
                     min = comp_cost[task][j];
@@ -218,8 +219,8 @@ void heft() {
                 double EST;
                 compute_est(task, j, &EST);
 
-                x.ests[j] = EST;
-                x.efts[j] = EST + comp_cost[task][j];
+                // all_et[i].ests[j] = EST;
+                // all_et[i].efts[j] = EST + comp_cost[task][j];
 
                 if(EST + comp_cost[task][j] < minEFT) {
                     minEFT = EST + comp_cost[task][j];
